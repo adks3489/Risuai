@@ -406,7 +406,7 @@ export const LLMModels: LLMModel[] = [
         name: 'Ollama',
         provider: LLMProvider.AsIs,
         format: LLMFormat.Ollama,
-        flags: [LLMFlags.hasFullSystemPrompt],
+        flags: [LLMFlags.hasFullSystemPrompt, LLMFlags.hasStreaming],
         parameters: OpenAIParameters,
         tokenizer: LLMTokenizer.Unknown
     },

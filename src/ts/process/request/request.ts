@@ -1212,40 +1212,58 @@ async function requestOllama(arg:RequestDataArgumentExtended):Promise<requestDat
         return {
             type: 'success',
             result: JSON.stringify({
-                error: "Preview body is not supported for Ollama"
+                error: 'Preview body is not supported for Ollama'
             })
         }
     }
 
     const ollama = new Ollama({host: db.ollamaURL})
-
-    const response = await ollama.chat({
-        model: db.ollamaModel,
-        messages: formated.map((v) => {
+    const messages = formated
+        .map((v) => {
             return {
                 role: v.role,
                 content: v.content
             }
-        }).filter((v) => {
+        })
+        .filter((v) => {
             return v.role === 'assistant' || v.role === 'user' || v.role === 'system'
-        }),
-        stream: true
-    })
+        })
 
-    const readableStream = new ReadableStream<StreamResponseChunk>({
-        async start(controller){
-            for await(const chunk of response){
-                controller.enqueue({
-                    "0": chunk.message.content
-                })
+    if (arg.useStreaming) {
+        const response = await ollama.chat({
+            model: db.ollamaModel,
+            messages: messages,
+            stream: true
+        })
+
+        const readableStream = new ReadableStream<StreamResponseChunk>({
+            async start(controller){
+                let prefix = '';
+                for await(const chunk of response){
+                    prefix += chunk.message.content
+                    controller.enqueue({
+                        "0": prefix
+                    })
+                }
+                controller.close()
             }
-            controller.close()
-        }
-    })
+        })
 
-    return {
-        type: 'streaming',
-        result: readableStream
+        return {
+            type: 'streaming',
+            result: readableStream
+        }
+    } else {
+        const response = await ollama.chat({
+            model: db.ollamaModel,
+            messages: messages,
+            stream: false
+        })
+
+        return {
+            type: 'success',
+            result: response.message.content
+        }
     }
 }
 
